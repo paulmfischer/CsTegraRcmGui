@@ -1,0 +1,7 @@
+# Grants unprivileged USB access to a Tegra device sitting in USB recovery
+# mode (RCM), which LibUsbRcmDeviceService needs to open/claim the device.
+#
+# Install with:
+#   sudo cp 99-cegrarcmgui.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+SUBSYSTEM=="usb", ATTR{idVendor}=="0955", ATTR{idProduct}=="7321", MODE="0666"

@@ -20,7 +20,7 @@ public partial class App : Application
         {
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
-            IRcmDeviceService deviceService = new StubRcmDeviceService();
+            var deviceService = new LibUsbRcmDeviceService();
 
             var mainViewModel = new MainViewModel(
                 new PayloadViewModel(deviceService, favorites),
@@ -31,6 +31,7 @@ public partial class App : Application
             {
                 DataContext = mainViewModel,
             };
+            desktop.ShutdownRequested += (_, _) => deviceService.Dispose();
         }
 
         base.OnFrameworkInitializationCompleted();
