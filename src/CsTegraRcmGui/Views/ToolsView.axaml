@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CsTegraRcmGui.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+             x:Class="CsTegraRcmGui.Views.ToolsView"
+             x:DataType="vm:ToolsViewModel">
+
+    <StackPanel Margin="16" Spacing="12">
+        <TextBlock Text="Tools" FontWeight="Bold" FontSize="16" Margin="0,0,0,8" />
+
+        <Button Content="Mount SD card as USB storage" Command="{Binding MountSdCommand}" HorizontalAlignment="Stretch" />
+        <Button Content="Mount eMMC as USB storage" Command="{Binding MountEmmcCommand}" HorizontalAlignment="Stretch" />
+        <Button Content="Run Linux (ShofEL2)" Command="{Binding RunShofel2Command}" HorizontalAlignment="Stretch" />
+        <Button Content="Dump BIS keys" Command="{Binding DumpBisKeyCommand}" HorizontalAlignment="Stretch" />
+    </StackPanel>
+</UserControl>

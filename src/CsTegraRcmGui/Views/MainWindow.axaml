@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CsTegraRcmGui.ViewModels"
+        xmlns:views="using:CsTegraRcmGui.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
+        x:Class="CsTegraRcmGui.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="800" Height="500"
+        Title="CsTegraRcmGui">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto">
+        <TabControl Grid.Row="0">
+            <TabItem Header="Payload">
+                <views:PayloadView DataContext="{Binding Payload}" />
+            </TabItem>
+            <TabItem Header="Tools">
+                <views:ToolsView DataContext="{Binding Tools}" />
+            </TabItem>
+            <TabItem Header="Options">
+                <views:OptionsView DataContext="{Binding Options}" />
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="0,1,0,0">
+            <ListBox Name="LogListBox" Height="120" ItemsSource="{Binding Log.Entries}"
+                     Background="Transparent" BorderThickness="0" FontFamily="Consolas,Monospace" FontSize="12" />
+        </Border>
+    </Grid>
+
+</Window>

@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "CegraRcmGui",
+            "name": "CsTegraRcmGui",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/CegraRcmGui/bin/Debug/net10.0/CegraRcmGui.dll",
+            "program": "${workspaceFolder}/src/CsTegraRcmGui/bin/Debug/net10.0/CsTegraRcmGui.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/CegraRcmGui",
+            "cwd": "${workspaceFolder}/src/CsTegraRcmGui",
             "console": "internalConsole",
             "stopAtEntry": false
         }

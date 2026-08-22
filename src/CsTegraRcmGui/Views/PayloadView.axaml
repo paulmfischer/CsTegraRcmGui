@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CsTegraRcmGui.ViewModels"
+             xmlns:models="using:CsTegraRcmGui.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="450"
+             x:Class="CsTegraRcmGui.Views.PayloadView"
+             x:DataType="vm:PayloadViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16" ColumnDefinitions="*,Auto">
+
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+            <TextBlock Grid.Column="0" Text="Payload" FontWeight="Bold" FontSize="16" />
+            <TextBlock Grid.Column="1" Text="{Binding ConnectionStatusText}" VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" Text="{Binding SelectedPayloadPath}" PlaceholderText="Path to payload.bin" />
+            <Button Grid.Column="1" Content="Browse..." Margin="8,0,0,0" Click="OnBrowseClick" />
+        </Grid>
+
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,12" BorderBrush="Gray" BorderThickness="1" CornerRadius="4">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Favorites" Margin="8,4" FontWeight="SemiBold" />
+                <ListBox ItemsSource="{Binding Favorites}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:FavoritePayload">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="Use"
+                                        Command="{Binding $parent[ListBox].((vm:PayloadViewModel)DataContext).SelectFavoriteCommand}"
+                                        CommandParameter="{Binding}" Margin="4,0" />
+                                <Button Grid.Column="2" Content="Remove"
+                                        Command="{Binding $parent[ListBox].((vm:PayloadViewModel)DataContext).RemoveFavoriteCommand}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="Add to favorites" Command="{Binding AddFavoriteCommand}" />
+            <Button Content="Inject payload" Command="{Binding InjectCommand}" Classes="accent" />
+        </StackPanel>
+    </Grid>
+</UserControl>

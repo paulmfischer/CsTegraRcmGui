@@ -1,0 +1,12 @@
+# Grants unprivileged USB access to a Tegra device sitting in USB recovery
+# mode (RCM), which LibUsbRcmDeviceService needs to open/claim the device.
+# Also tells ModemManager (if installed/running) to leave this device alone:
+# it auto-probes unknown USB devices to check whether they're modems, and
+# even briefly touching this device while a payload transfer is in progress
+# is enough to stall the bulk endpoints.
+#
+# Install with:
+#   sudo cp 99-cstegrarcmgui.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger
+SUBSYSTEM=="usb", ATTR{idVendor}=="0955", ATTR{idProduct}=="7321", MODE="0666", ENV{ID_MM_DEVICE_IGNORE}="1"

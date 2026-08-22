@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/CegraRcmGui.Core/CegraRcmGui.Core.csproj" />
+    <ProjectReference Include="../../src/CsTegraRcmGui.Core/CsTegraRcmGui.Core.csproj" />
   </ItemGroup>
 
 </Project>

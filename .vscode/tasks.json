@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/CegraRcmGui/CegraRcmGui.csproj",
+                "${workspaceFolder}/src/CsTegraRcmGui/CsTegraRcmGui.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -25,7 +25,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/src/CegraRcmGui/CegraRcmGui.csproj"
+                "${workspaceFolder}/src/CsTegraRcmGui/CsTegraRcmGui.csproj"
             ],
             "problemMatcher": "$msCompile",
             "isBackground": true
