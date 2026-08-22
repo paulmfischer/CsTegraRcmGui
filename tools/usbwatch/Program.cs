@@ -3,7 +3,9 @@ using CegraRcmGui.Core.Services;
 
 Console.WriteLine("Watching for a device at 0955:7321 (Ctrl+C to quit)...");
 
-using var deviceService = new LibUsbRcmDeviceService();
+ISettingsService settings = new JsonSettingsService();
+IFileLogger fileLogger = new FileLogger(settings);
+using var deviceService = new LibUsbRcmDeviceService(fileLogger);
 
 RcmDeviceState? lastState = null;
 while (true)
