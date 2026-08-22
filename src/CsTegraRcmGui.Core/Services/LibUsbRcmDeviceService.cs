@@ -158,7 +158,8 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 // apparently isn't accepted through that path. Submit it as
                 // a raw usbfs URB instead, the same workaround JTegraNX's
                 // own Linux-specific native helper uses.
-                LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log);
+                if (!LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log))
+                    throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
             }
             else
             {

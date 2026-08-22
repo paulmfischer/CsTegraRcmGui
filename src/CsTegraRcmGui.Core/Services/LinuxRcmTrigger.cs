@@ -17,16 +17,42 @@ internal static class LinuxRcmTrigger
     private const long IoctlReapUrbNoDelay = 0x4008550d;
     private const byte UrbTypeControl = 2;
     private const byte EndpointDirectionIn = 0x80;
+    private const int MaxOpenAttempts = 5;
+    private const uint OpenRetryDelayMicroseconds = 50_000;
 
-    public static void Trigger(byte busNumber, byte deviceAddress, int triggerLength, IFileLogger log)
+    /// <summary>
+    /// Returns true only when the URB was submitted and never completed
+    /// normally — the signal that the overflow actually landed and the
+    /// device jumped away. Any other outcome (couldn't open the device
+    /// node, SUBMITURB failed, or the transfer completed normally) means
+    /// the trigger did not land: the device is left with a fully-written
+    /// payload but no working trigger, and will silently time out and
+    /// disconnect on its own if the caller reports this as success.
+    /// </summary>
+    public static bool Trigger(byte busNumber, byte deviceAddress, int triggerLength, IFileLogger log)
     {
         var devicePath = $"/dev/bus/usb/{busNumber:D3}/{deviceAddress:D3}";
-        var fd = Open(devicePath, ORdWr);
-        if (fd < 0)
+
+        // The device node can briefly exist but not yet be readable/writable
+        // right after enumeration: udev applies the permission-granting rule
+        // asynchronously, so opening it immediately after the device is
+        // first seen as connected can race that rule and fail with EACCES.
+        // Retrying briefly absorbs that race instead of failing outright.
+        var fd = -1;
+        for (var attempt = 1; attempt <= MaxOpenAttempts; attempt++)
         {
-            log.Log($"Trigger (Linux raw URB): failed to open {devicePath} (errno {Marshal.GetLastWin32Error()})");
-            return;
+            fd = Open(devicePath, ORdWr);
+            if (fd >= 0)
+                break;
+
+            var errno = Marshal.GetLastWin32Error();
+            log.Log($"Trigger (Linux raw URB): failed to open {devicePath} (errno {errno}, attempt {attempt}/{MaxOpenAttempts})");
+            if (attempt < MaxOpenAttempts)
+                Usleep(OpenRetryDelayMicroseconds);
         }
+
+        if (fd < 0)
+            return false;
 
         var requestSize = 8 + triggerLength; // 8-byte USB setup packet + response data
         var requestBuffer = Marshal.AllocHGlobal(requestSize);
@@ -55,24 +81,27 @@ internal static class LinuxRcmTrigger
             if (Ioctl(fd, IoctlSubmitUrb, urbBuffer) != 0)
             {
                 log.Log($"Trigger (Linux raw URB): SUBMITURB failed (errno {Marshal.GetLastWin32Error()})");
-                return;
+                return false;
             }
 
             Usleep(250_000);
 
             if (Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot) == 0)
             {
-                log.Log("Trigger (Linux raw URB): device responded before jumping away (unexpected)");
+                // The transfer completed normally, which means the overflow
+                // did not land: the device is still alive and responding
+                // instead of having jumped into the payload.
+                log.Log("Trigger (Linux raw URB): device responded before jumping away (trigger did not land)");
+                return false;
             }
-            else
-            {
-                // Expected: once the trigger lands, the device jumps into
-                // the payload and never completes this URB.
-                log.Log("Trigger (Linux raw URB): no response yet (expected once the trigger lands) — discarding");
-                Ioctl(fd, IoctlDiscardUrb, IntPtr.Zero);
-                Usleep(40_000);
-                Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot);
-            }
+
+            // Expected: once the trigger lands, the device jumps into
+            // the payload and never completes this URB.
+            log.Log("Trigger (Linux raw URB): no response yet (expected once the trigger lands) — discarding");
+            Ioctl(fd, IoctlDiscardUrb, IntPtr.Zero);
+            Usleep(40_000);
+            Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot);
+            return true;
         }
         finally
         {
