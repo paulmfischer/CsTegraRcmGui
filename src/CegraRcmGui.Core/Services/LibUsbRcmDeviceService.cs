@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using CegraRcmGui.Core.Models;
 using LibUsbDotNet;
 using LibUsbDotNet.LibUsb;
@@ -150,6 +149,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             await WriteRcmPayloadAsync(writer, payload, cancellationToken);
 
             progress?.Report("Triggering payload execution...");
+            var triggerLength = (int)(StackEndAddress - HighBufferAddress);
             if (OperatingSystem.IsLinux() && device is UsbDevice concreteDevice)
             {
                 // Standard libusb control transfers of this size are
@@ -158,11 +158,11 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 // apparently isn't accepted through that path. Submit it as
                 // a raw usbfs URB instead, the same workaround JTegraNX's
                 // own Linux-specific native helper uses.
-                TriggerExecutionLinuxRawUrb(concreteDevice.BusNumber, concreteDevice.Address, _log);
+                LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log);
             }
             else
             {
-                TriggerExecution(device, _log);
+                TriggerExecution(device, triggerLength, _log);
             }
             progress?.Report("Payload injected!");
         }
@@ -246,9 +246,8 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         }
     }
 
-    private static void TriggerExecution(IUsbDevice device, IFileLogger log)
+    private static void TriggerExecution(IUsbDevice device, int triggerLength, IFileLogger log)
     {
-        var triggerLength = (int)(StackEndAddress - HighBufferAddress);
         var setupPacket = new UsbSetupPacket(
             bRequestType: 0x82, // Device-to-host | Standard | Recipient=Endpoint
             bRequest: 0x00,     // GET_STATUS
@@ -269,98 +268,6 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             log.Log($"Trigger control transfer threw (expected once the trigger lands): {ex.Message}");
         }
     }
-
-    /// <summary>
-    /// Linux-only fallback for <see cref="TriggerExecution"/>: submits the
-    /// same GET_STATUS request directly as a raw usbfs URB via ioctl,
-    /// bypassing libusb's control-transfer path (which rejects a transfer
-    /// this size locally on this platform). Mirrors JTegraNX's Linux
-    /// native helper (Native/Linux/native.cpp).
-    /// </summary>
-    private static void TriggerExecutionLinuxRawUrb(byte busNumber, byte deviceAddress, IFileLogger log)
-    {
-        const int ORdWr = 2;
-        const long IoctlSubmitUrb = 0x8038550a;
-        const long IoctlDiscardUrb = 0x550b;
-        const long IoctlReapUrbNoDelay = 0x4008550d;
-        const byte UrbTypeControl = 2;
-        const byte EndpointDirectionIn = 0x80;
-
-        var devicePath = $"/dev/bus/usb/{busNumber:D3}/{deviceAddress:D3}";
-        var fd = Open(devicePath, ORdWr);
-        if (fd < 0)
-        {
-            log.Log($"Trigger (Linux raw URB): failed to open {devicePath} (errno {Marshal.GetLastWin32Error()})");
-            return;
-        }
-
-        var triggerLength = (int)(StackEndAddress - HighBufferAddress);
-        var requestSize = 8 + triggerLength; // 8-byte USB setup packet + response data
-        var requestBuffer = Marshal.AllocHGlobal(requestSize);
-        var urbBuffer = Marshal.AllocHGlobal(56); // sizeof(struct usbdevfs_urb) on x86_64
-        var reapedUrbSlot = Marshal.AllocHGlobal(IntPtr.Size);
-        try
-        {
-            Marshal.WriteByte(requestBuffer, 0, 0x82);       // bRequestType: Device-to-host | Standard | Recipient=Endpoint
-            Marshal.WriteByte(requestBuffer, 1, 0x00);       // bRequest: GET_STATUS
-            Marshal.WriteInt16(requestBuffer, 2, 0);         // wValue
-            Marshal.WriteInt16(requestBuffer, 4, 0);         // wIndex
-            Marshal.WriteInt16(requestBuffer, 6, (short)triggerLength); // wLength
-
-            // struct usbdevfs_urb (x86_64 layout): type@0, endpoint@1, status@4,
-            // flags@8, buffer@16, buffer_length@24, actual_length@28,
-            // start_frame@32, number_of_packets@36, error_count@40, signr@44,
-            // usercontext@48 — 56 bytes total.
-            for (var i = 0; i < 56; i++)
-                Marshal.WriteByte(urbBuffer, i, 0);
-            Marshal.WriteByte(urbBuffer, 0, UrbTypeControl);
-            Marshal.WriteByte(urbBuffer, 1, EndpointDirectionIn);
-            Marshal.WriteIntPtr(urbBuffer, 16, requestBuffer);
-            Marshal.WriteInt32(urbBuffer, 24, requestSize);
-
-            log.Log($"Trigger (Linux raw URB): submitting, length={triggerLength}");
-            if (Ioctl(fd, IoctlSubmitUrb, urbBuffer) != 0)
-            {
-                log.Log($"Trigger (Linux raw URB): SUBMITURB failed (errno {Marshal.GetLastWin32Error()})");
-                return;
-            }
-
-            Usleep(250_000);
-
-            if (Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot) == 0)
-            {
-                log.Log("Trigger (Linux raw URB): device responded before jumping away (unexpected)");
-            }
-            else
-            {
-                // Expected: once the trigger lands, the device jumps into
-                // the payload and never completes this URB.
-                log.Log("Trigger (Linux raw URB): no response yet (expected once the trigger lands) — discarding");
-                Ioctl(fd, IoctlDiscardUrb, IntPtr.Zero);
-                Usleep(40_000);
-                Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot);
-            }
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(requestBuffer);
-            Marshal.FreeHGlobal(urbBuffer);
-            Marshal.FreeHGlobal(reapedUrbSlot);
-            Close(fd);
-        }
-    }
-
-    [DllImport("libc", EntryPoint = "open", SetLastError = true)]
-    private static extern int Open(string pathname, int flags);
-
-    [DllImport("libc", EntryPoint = "close", SetLastError = true)]
-    private static extern int Close(int fd);
-
-    [DllImport("libc", EntryPoint = "ioctl", SetLastError = true)]
-    private static extern int Ioctl(int fd, long request, IntPtr arg);
-
-    [DllImport("libc", EntryPoint = "usleep")]
-    private static extern void Usleep(uint microseconds);
 
     private async Task<(Error error, int transferred)> TransferWithRetryAsync(
         string context, UsbEndpointBase endpoint, Func<Task<(Error error, int transferLength)>> transfer, CancellationToken cancellationToken)
