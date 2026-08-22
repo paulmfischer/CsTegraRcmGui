@@ -65,12 +65,12 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
 
     private readonly UsbContext _context = new();
     private readonly CancellationTokenSource _monitorCts = new();
-    private readonly IFileLogger _log;
+    private readonly ILogger _log;
     private RcmDeviceState _lastState = RcmDeviceState.NotConnected;
 
     public event EventHandler<RcmDeviceState>? StateChanged;
 
-    public LibUsbRcmDeviceService(IFileLogger log)
+    public LibUsbRcmDeviceService(ILogger log)
     {
         _log = log;
         _ = MonitorAsync(_monitorCts.Token);
@@ -118,10 +118,10 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
     public async Task SendPayloadAsync(string payloadPath, IProgress<string>? progress, CancellationToken cancellationToken)
     {
         var rawPayload = await File.ReadAllBytesAsync(payloadPath, cancellationToken);
-        _log.Log($"SendPayloadAsync: '{payloadPath}' ({rawPayload.Length} bytes)");
+        _log.Debug($"SendPayloadAsync: '{payloadPath}' ({rawPayload.Length} bytes)");
 
         var payload = BuildRcmPayload(rawPayload);
-        _log.Log($"Built RCM payload: {payload.Length} bytes ({payload.Length / PacketSize} blocks)");
+        _log.Debug($"Built RCM payload: {payload.Length} bytes ({payload.Length / PacketSize} blocks)");
 
         IUsbDevice? device = null;
         try
@@ -130,9 +130,9 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 ?? throw new InvalidOperationException("No device found in USB recovery mode.");
 
             device.Open();
-            _log.Log($"Opened device VID={device.VendorId:X4} PID={device.ProductId:X4}");
+            _log.Debug($"Opened device VID={device.VendorId:X4} PID={device.ProductId:X4}");
             device.ClaimInterface(0);
-            _log.Log("Claimed interface 0");
+            _log.Debug("Claimed interface 0");
 
             var reader = device.OpenEndpointReader(ReadEndpointID.Ep01);
             var writer = device.OpenEndpointWriter(WriteEndpointID.Ep01);
@@ -142,7 +142,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             var (readError, readLength) = await TransferWithRetryAsync(
                 "Read device id", reader, () => reader.ReadAsync(deviceId, TransferTimeoutMs), cancellationToken);
             if (readLength > 0)
-                _log.Log($"Device id bytes: {Convert.ToHexString(deviceId.AsSpan(0, readLength))}");
+                _log.Debug($"Device id bytes: {Convert.ToHexString(deviceId.AsSpan(0, readLength))}");
             readError.ThrowOnError();
 
             progress?.Report("Writing payload...");
@@ -169,7 +169,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         }
         catch (Exception ex)
         {
-            _log.LogError("SendPayloadAsync failed", ex);
+            _log.Error("SendPayloadAsync failed", ex);
             throw;
         }
         finally
@@ -180,11 +180,11 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             try
             {
                 device?.Dispose();
-                _log.Log("Closed device handle");
+                _log.Debug("Closed device handle");
             }
             catch (UsbException ex)
             {
-                _log.Log($"Closing device handle failed (expected once the trigger has landed): {ex.Message}");
+                _log.Debug($"Closing device handle failed (expected once the trigger has landed): {ex.Message}");
             }
         }
     }
@@ -247,7 +247,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         }
     }
 
-    private static void TriggerExecution(IUsbDevice device, int triggerLength, IFileLogger log)
+    private static void TriggerExecution(IUsbDevice device, int triggerLength, ILogger log)
     {
         var setupPacket = new UsbSetupPacket(
             bRequestType: 0x82, // Device-to-host | Standard | Recipient=Endpoint
@@ -256,17 +256,17 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             wIndex: 0,
             wlength: triggerLength);
 
-        log.Log($"Sending trigger control transfer: length={triggerLength}");
+        log.Debug($"Sending trigger control transfer: length={triggerLength}");
         try
         {
             var transferred = device.ControlTransfer(setupPacket, new byte[triggerLength], 0, triggerLength);
-            log.Log($"Trigger control transfer completed without error: {transferred} bytes transferred (unexpected — normally the device jumps away before responding)");
+            log.Debug($"Trigger control transfer completed without error: {transferred} bytes transferred (unexpected — normally the device jumps away before responding)");
         }
         catch (UsbException ex)
         {
             // Expected: once the trigger lands, the device jumps into the
             // payload and stops responding on this pipe.
-            log.Log($"Trigger control transfer threw (expected once the trigger lands): {ex.Message}");
+            log.Debug($"Trigger control transfer threw (expected once the trigger lands): {ex.Message}");
         }
     }
 
@@ -279,7 +279,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         while (true)
         {
             (error, transferred) = await transfer();
-            _log.Log($"{context} (attempt {attempt}/{MaxTransferAttempts}): {error}, {transferred} bytes");
+            _log.Debug($"{context} (attempt {attempt}/{MaxTransferAttempts}): {error}, {transferred} bytes");
 
             if (error == Error.Success || attempt >= MaxTransferAttempts)
                 return (error, transferred);
@@ -288,7 +288,7 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
             // endpoint halted/stalled, which makes every subsequent attempt
             // fail immediately with a pipe error until it's cleared.
             var clearHaltError = endpoint.ClearHalt();
-            _log.Log($"{context}: clearing halt before retry: {clearHaltError}");
+            _log.Debug($"{context}: clearing halt before retry: {clearHaltError}");
 
             await Task.Delay(RetryDelayMs, cancellationToken);
             attempt++;

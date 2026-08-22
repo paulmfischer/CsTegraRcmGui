@@ -15,9 +15,9 @@ namespace CsTegraRcmGui.ViewModels;
 public partial class ToolsViewModel : ViewModelBase
 {
     private readonly IRcmDeviceService _deviceService;
-    private readonly LogViewModel _log;
+    private readonly ILogger _log;
 
-    public ToolsViewModel(IRcmDeviceService deviceService, LogViewModel log)
+    public ToolsViewModel(IRcmDeviceService deviceService, ILogger log)
     {
         _deviceService = deviceService;
         _log = log;
@@ -37,15 +37,15 @@ public partial class ToolsViewModel : ViewModelBase
 
     private async Task RunToolAsync(string toolPayloadPath, string startMessage)
     {
-        _log.Log(startMessage);
+        _log.Info(startMessage);
         try
         {
             await _deviceService.SendPayloadAsync(toolPayloadPath, null, CancellationToken.None);
-            _log.Log("Done.");
+            _log.Info("Done.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _log.Log($"Error: {ex.Message}");
+            // Already logged (with full detail) by the device service.
         }
     }
 }

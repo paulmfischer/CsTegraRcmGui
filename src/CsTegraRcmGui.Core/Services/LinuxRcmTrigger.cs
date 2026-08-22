@@ -29,7 +29,7 @@ internal static class LinuxRcmTrigger
     /// payload but no working trigger, and will silently time out and
     /// disconnect on its own if the caller reports this as success.
     /// </summary>
-    public static bool Trigger(byte busNumber, byte deviceAddress, int triggerLength, IFileLogger log)
+    public static bool Trigger(byte busNumber, byte deviceAddress, int triggerLength, ILogger log)
     {
         var devicePath = $"/dev/bus/usb/{busNumber:D3}/{deviceAddress:D3}";
 
@@ -46,7 +46,7 @@ internal static class LinuxRcmTrigger
                 break;
 
             var errno = Marshal.GetLastWin32Error();
-            log.Log($"Trigger (Linux raw URB): failed to open {devicePath} (errno {errno}, attempt {attempt}/{MaxOpenAttempts})");
+            log.Debug($"Trigger (Linux raw URB): failed to open {devicePath} (errno {errno}, attempt {attempt}/{MaxOpenAttempts})");
             if (attempt < MaxOpenAttempts)
                 Usleep(OpenRetryDelayMicroseconds);
         }
@@ -77,10 +77,10 @@ internal static class LinuxRcmTrigger
             Marshal.WriteIntPtr(urbBuffer, 16, requestBuffer);
             Marshal.WriteInt32(urbBuffer, 24, requestSize);
 
-            log.Log($"Trigger (Linux raw URB): submitting, length={triggerLength}");
+            log.Debug($"Trigger (Linux raw URB): submitting, length={triggerLength}");
             if (Ioctl(fd, IoctlSubmitUrb, urbBuffer) != 0)
             {
-                log.Log($"Trigger (Linux raw URB): SUBMITURB failed (errno {Marshal.GetLastWin32Error()})");
+                log.Debug($"Trigger (Linux raw URB): SUBMITURB failed (errno {Marshal.GetLastWin32Error()})");
                 return false;
             }
 
@@ -91,13 +91,13 @@ internal static class LinuxRcmTrigger
                 // The transfer completed normally, which means the overflow
                 // did not land: the device is still alive and responding
                 // instead of having jumped into the payload.
-                log.Log("Trigger (Linux raw URB): device responded before jumping away (trigger did not land)");
+                log.Debug("Trigger (Linux raw URB): device responded before jumping away (trigger did not land)");
                 return false;
             }
 
             // Expected: once the trigger lands, the device jumps into
             // the payload and never completes this URB.
-            log.Log("Trigger (Linux raw URB): no response yet (expected once the trigger lands) — discarding");
+            log.Debug("Trigger (Linux raw URB): no response yet (expected once the trigger lands) — discarding");
             Ioctl(fd, IoctlDiscardUrb, IntPtr.Zero);
             Usleep(40_000);
             Ioctl(fd, IoctlReapUrbNoDelay, reapedUrbSlot);

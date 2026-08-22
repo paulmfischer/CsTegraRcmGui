@@ -1,6 +1,11 @@
 namespace CsTegraRcmGui.Core.Services;
 
-public sealed class FileLogger : IFileLogger
+/// <summary>
+/// Writes every log level to a file next to the app. Gated live by
+/// <see cref="Models.AppSettings.LoggingEnabled"/> — mirrors the original
+/// app's "Enable logging" option.
+/// </summary>
+public sealed class FileLogger : ILogger
 {
     private readonly ISettingsService _settings;
     private readonly string _filePath;
@@ -12,24 +17,17 @@ public sealed class FileLogger : IFileLogger
         _filePath = filePath ?? Path.Combine(AppContext.BaseDirectory, "cstegrarcmgui.log");
     }
 
-    public void Log(string message)
-    {
-        if (!_settings.Current.LoggingEnabled)
-            return;
+    public void Debug(string message) => Write($"DEBUG: {message}");
 
-        Write($"INFO: {message}");
-    }
+    public void Info(string message) => Write($"INFO: {message}");
 
-    public void LogError(string context, Exception ex)
-    {
-        if (!_settings.Current.LoggingEnabled)
-            return;
-
-        Write($"ERROR: {context}: {ex}");
-    }
+    public void Error(string context, Exception ex) => Write($"ERROR: {context}: {ex}");
 
     private void Write(string message)
     {
+        if (!_settings.Current.LoggingEnabled)
+            return;
+
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}";
 
         lock (_lock)

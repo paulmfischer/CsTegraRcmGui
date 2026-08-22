@@ -1,4 +1,5 @@
 using CsTegraRcmGui.Core.Services;
+using CsTegraRcmGui.Services;
 
 namespace CsTegraRcmGui.ViewModels;
 
@@ -30,8 +31,9 @@ public partial class MainViewModel : ViewModelBase
         private static readonly IRcmDeviceService DeviceService = new StubRcmDeviceService();
 
         public static readonly LogViewModel Log = new();
-        public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Log);
-        public static ToolsViewModel Tools => new(DeviceService, Log);
+        private static readonly ILogger Logger = new CompositeLogger(new FileLogger(Settings), Log);
+        public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Logger);
+        public static ToolsViewModel Tools => new(DeviceService, Logger);
         public static OptionsViewModel Options => new(Settings);
     }
 }

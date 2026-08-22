@@ -14,7 +14,7 @@ public partial class PayloadViewModel : ViewModelBase
 {
     private readonly IRcmDeviceService _deviceService;
     private readonly IFavoritesService _favoritesService;
-    private readonly LogViewModel _log;
+    private readonly ILogger _log;
 
     [ObservableProperty]
     public partial string? SelectedPayloadPath { get; set; }
@@ -24,7 +24,7 @@ public partial class PayloadViewModel : ViewModelBase
 
     public ObservableCollection<FavoritePayload> Favorites { get; } = [];
 
-    public PayloadViewModel(IRcmDeviceService deviceService, IFavoritesService favoritesService, LogViewModel log)
+    public PayloadViewModel(IRcmDeviceService deviceService, IFavoritesService favoritesService, ILogger log)
     {
         _deviceService = deviceService;
         _favoritesService = favoritesService;
@@ -42,15 +42,15 @@ public partial class PayloadViewModel : ViewModelBase
         if (SelectedPayloadPath is null)
             return;
 
-        _log.Log($"Injecting payload: {SelectedPayloadPath}");
+        _log.Info($"Injecting payload: {SelectedPayloadPath}");
         try
         {
             await _deviceService.SendPayloadAsync(SelectedPayloadPath, null, CancellationToken.None);
-            _log.Log("Payload injected.");
+            _log.Info("Payload injected.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _log.Log($"Error while injecting payload: {ex.Message}");
+            // Already logged (with full detail) by the device service.
         }
     }
 
@@ -68,7 +68,7 @@ public partial class PayloadViewModel : ViewModelBase
     {
         InjectCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(ConnectionStatusText));
-        _log.Log(ConnectionStatusText);
+        _log.Info(ConnectionStatusText);
     }
 
     [RelayCommand]
@@ -78,7 +78,7 @@ public partial class PayloadViewModel : ViewModelBase
             return;
 
         Favorites.Add(_favoritesService.Favorites[^1]);
-        _log.Log($"Added favorite: {SelectedPayloadPath}");
+        _log.Info($"Added favorite: {SelectedPayloadPath}");
     }
 
     [RelayCommand]
@@ -91,7 +91,7 @@ public partial class PayloadViewModel : ViewModelBase
             return;
 
         Favorites.Remove(favorite);
-        _log.Log($"Removed favorite: {favorite.Path}");
+        _log.Info($"Removed favorite: {favorite.Path}");
     }
 
     partial void OnSelectedPayloadPathChanged(string? value) => InjectCommand.NotifyCanExecuteChanged();

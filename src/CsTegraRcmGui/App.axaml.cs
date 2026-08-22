@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using CsTegraRcmGui.Core.Services;
+using CsTegraRcmGui.Services;
 using CsTegraRcmGui.ViewModels;
 using CsTegraRcmGui.Views;
 
@@ -20,13 +21,13 @@ public partial class App : Application
         {
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
-            IFileLogger fileLogger = new FileLogger(settings);
-            var deviceService = new LibUsbRcmDeviceService(fileLogger);
             var log = new LogViewModel();
+            ILogger logger = new CompositeLogger(new FileLogger(settings), log);
+            var deviceService = new LibUsbRcmDeviceService(logger);
 
             var mainViewModel = new MainViewModel(
-                new PayloadViewModel(deviceService, favorites, log),
-                new ToolsViewModel(deviceService, log),
+                new PayloadViewModel(deviceService, favorites, logger),
+                new ToolsViewModel(deviceService, logger),
                 new OptionsViewModel(settings),
                 log);
 
