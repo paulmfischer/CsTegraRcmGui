@@ -21,11 +21,13 @@ public partial class App : Application
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
             var deviceService = new LibUsbRcmDeviceService();
+            var log = new LogViewModel();
 
             var mainViewModel = new MainViewModel(
-                new PayloadViewModel(deviceService, favorites),
-                new ToolsViewModel(deviceService),
-                new OptionsViewModel(settings));
+                new PayloadViewModel(deviceService, favorites, log),
+                new ToolsViewModel(deviceService, log),
+                new OptionsViewModel(settings),
+                log);
 
             desktop.MainWindow = new MainWindow
             {

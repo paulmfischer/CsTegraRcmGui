@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CegraRcmGui.Core.Services;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace CegraRcmGui.ViewModels;
@@ -16,13 +15,12 @@ namespace CegraRcmGui.ViewModels;
 public partial class ToolsViewModel : ViewModelBase
 {
     private readonly IRcmDeviceService _deviceService;
+    private readonly LogViewModel _log;
 
-    [ObservableProperty]
-    public partial string StatusMessage { get; set; } = string.Empty;
-
-    public ToolsViewModel(IRcmDeviceService deviceService)
+    public ToolsViewModel(IRcmDeviceService deviceService, LogViewModel log)
     {
         _deviceService = deviceService;
+        _log = log;
     }
 
     [RelayCommand]
@@ -39,15 +37,15 @@ public partial class ToolsViewModel : ViewModelBase
 
     private async Task RunToolAsync(string toolPayloadPath, string startMessage)
     {
-        StatusMessage = startMessage;
+        _log.Log(startMessage);
         try
         {
             await _deviceService.SendPayloadAsync(toolPayloadPath, null, CancellationToken.None);
-            StatusMessage = "Done.";
+            _log.Log("Done.");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            _log.Log($"Error: {ex.Message}");
         }
     }
 }

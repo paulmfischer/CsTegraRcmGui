@@ -7,16 +7,18 @@ public partial class MainViewModel : ViewModelBase
     public PayloadViewModel Payload { get; }
     public ToolsViewModel Tools { get; }
     public OptionsViewModel Options { get; }
+    public LogViewModel Log { get; }
 
-    public MainViewModel(PayloadViewModel payload, ToolsViewModel tools, OptionsViewModel options)
+    public MainViewModel(PayloadViewModel payload, ToolsViewModel tools, OptionsViewModel options, LogViewModel log)
     {
         Payload = payload;
         Tools = tools;
         Options = options;
+        Log = log;
     }
 
     /// <summary>Parameterless constructor for the XAML designer only.</summary>
-    public MainViewModel() : this(DesignTime.Payload, DesignTime.Tools, DesignTime.Options)
+    public MainViewModel() : this(DesignTime.Payload, DesignTime.Tools, DesignTime.Options, DesignTime.Log)
     {
     }
 
@@ -27,8 +29,9 @@ public partial class MainViewModel : ViewModelBase
         private static readonly IFavoritesService FavoritesService = new FavoritesService(Settings);
         private static readonly IRcmDeviceService DeviceService = new StubRcmDeviceService();
 
-        public static PayloadViewModel Payload => new(DeviceService, FavoritesService);
-        public static ToolsViewModel Tools => new(DeviceService);
+        public static readonly LogViewModel Log = new();
+        public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Log);
+        public static ToolsViewModel Tools => new(DeviceService, Log);
         public static OptionsViewModel Options => new(Settings);
     }
 }

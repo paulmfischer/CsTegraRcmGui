@@ -14,7 +14,5 @@
         <Button Content="Mount eMMC as USB storage" Command="{Binding MountEmmcCommand}" HorizontalAlignment="Stretch" />
         <Button Content="Run Linux (ShofEL2)" Command="{Binding RunShofel2Command}" HorizontalAlignment="Stretch" />
         <Button Content="Dump BIS keys" Command="{Binding DumpBisKeyCommand}" HorizontalAlignment="Stretch" />
-
-        <TextBlock Text="{Binding StatusMessage}" Margin="0,12,0,0" Opacity="0.8" />
     </StackPanel>
 </UserControl>
