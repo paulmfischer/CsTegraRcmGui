@@ -161,9 +161,9 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 if (!LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log))
                     throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
             }
-            else
+            else if (!TriggerExecution(device, triggerLength, _log))
             {
-                TriggerExecution(device, triggerLength, _log);
+                throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
             }
             progress?.Report("Payload injected!");
         }
@@ -247,7 +247,15 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         }
     }
 
-    private static void TriggerExecution(IUsbDevice device, int triggerLength, ILogger log)
+    /// <summary>
+    /// Returns true only when the transfer failed in a way consistent with
+    /// the device having jumped away mid-transfer. A completed transfer, or
+    /// one rejected with <see cref="Error.InvalidParam"/> — which on
+    /// Windows means WinUSB's 4KB control-transfer ceiling rejected this
+    /// call locally, before it ever reached the device — both mean the
+    /// trigger did not land.
+    /// </summary>
+    private static bool TriggerExecution(IUsbDevice device, int triggerLength, ILogger log)
     {
         var setupPacket = new UsbSetupPacket(
             bRequestType: 0x82, // Device-to-host | Standard | Recipient=Endpoint
@@ -261,12 +269,22 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
         {
             var transferred = device.ControlTransfer(setupPacket, new byte[triggerLength], 0, triggerLength);
             log.Debug($"Trigger control transfer completed without error: {transferred} bytes transferred (unexpected — normally the device jumps away before responding)");
+            return false;
+        }
+        catch (UsbException ex) when (ex.ErrorCode == Error.InvalidParam)
+        {
+            // Rejected locally by the USB stack (e.g. WinUSB's hard 4KB
+            // control-transfer limit on Windows) — never reached the
+            // device, so the trigger did not land.
+            log.Debug($"Trigger control transfer rejected locally, never reached the device: {ex.Message}");
+            return false;
         }
         catch (UsbException ex)
         {
             // Expected: once the trigger lands, the device jumps into the
             // payload and stops responding on this pipe.
             log.Debug($"Trigger control transfer threw (expected once the trigger lands): {ex.Message}");
+            return true;
         }
     }
 
