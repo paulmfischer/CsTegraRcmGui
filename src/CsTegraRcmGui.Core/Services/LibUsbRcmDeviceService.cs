@@ -161,6 +161,17 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 if (!LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log))
                     throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
             }
+            else if (OperatingSystem.IsWindows())
+            {
+                // libusb's Windows backend hard-caps every control transfer
+                // at 4096 bytes (MAX_CTRL_BUFFER_LENGTH), for WinUSB,
+                // libusbK and libusb0 alike — the same "Invalid parameter"
+                // rejected-locally failure as the standard path below, just
+                // never surfaced there. Submit it as a raw libusbK IOCTL
+                // instead, bypassing libusb entirely for this transfer.
+                if (!WindowsRcmTrigger.Trigger(VendorId, ProductId, triggerLength, _log))
+                    throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
+            }
             else if (!TriggerExecution(device, triggerLength, _log))
             {
                 throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
