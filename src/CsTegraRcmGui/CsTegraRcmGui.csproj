@@ -11,6 +11,18 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <!--
+      LibUsbDotNet P/Invokes into libusb-1.0.dll but doesn't ship it — unlike
+      Linux, where it's a system package, Windows has no equivalent, so it
+      has to be bundled here. Flattened into the output root (Link) since
+      that's where .NET's native library probing looks for it next to the
+      exe. See packaging/windows/README.md for the other Windows-only piece
+      (driver binding), which can't be bundled the same way.
+    -->
+    <None Include="runtimes\win-x64\native\libusb-1.0.dll" Link="libusb-1.0.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
