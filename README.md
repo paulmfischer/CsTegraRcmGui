@@ -51,7 +51,16 @@ dotnet run --project src/CsTegraRcmGui
 
 TODO
 
-## License notices
+## Credits
+
+The RCM payload layout and the platform-specific trigger workarounds are
+ported from [JTegraNX](https://github.com/dylwedma11748/JTegraNX)
+(`src/main/java/rcm/RCM.java`), licensed GPL-2.0. This project's license
+follows from that.
+
+## License
+
+GPL-2.0 — see [`LICENSE`](LICENSE).
 
 Third-party components bundled with this app are documented in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
