@@ -50,6 +50,10 @@ jobs:
             -p:DebugType=none \
             -o publish/${{ matrix.rid }}
 
+      - name: Remove native debug symbols
+        shell: bash
+        run: find publish/${{ matrix.rid }} -name "*.pdb" -delete
+
       - name: Add prereq README and licensing docs
         shell: bash
         run: |
