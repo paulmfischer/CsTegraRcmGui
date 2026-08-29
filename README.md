@@ -15,7 +15,16 @@ feedback is welcome.
 
 ## Download executable
 
-TODO
+Grab the latest zip for your OS from the
+[Releases page](../../releases/latest). Each zip is self-contained (bundles
+the .NET runtime — no separate SDK/runtime install needed) and includes the
+OS-specific setup README plus licensing docs:
+
+- Windows: `CsTegraRcmGui-<version>-win-x64.zip`
+- Linux: `CsTegraRcmGui-<version>-linux-x64.zip`
+
+Extract it, complete the one-time OS setup step from the bundled README, then
+run the executable inside.
 
 ## Running from source
 
@@ -49,7 +58,18 @@ dotnet run --project src/CsTegraRcmGui
 
 ## Building a release
 
-TODO
+Releases are versioned with [SemVer](https://semver.org/) (major = breaking,
+minor = feature, patch = fix) and built automatically. To cut one:
+
+```
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+Pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml),
+which publishes self-contained Windows and Linux zips and attaches them to a
+GitHub Release with auto-generated notes. macOS isn't built yet — it needs
+local testing first (see the note at the top of that workflow).
 
 ## Credits
 

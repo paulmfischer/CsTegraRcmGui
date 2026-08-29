@@ -23,3 +23,7 @@ Target framework is net10.0.
 - Do not add `Claude-Session: ...` trailers to  commit messages.
 - Only commit when explicitly asked. Let the user review the diff first.
 - Prefer new commits over amending, unless asked to amend.
+- Prefix commit subjects with a Conventional Commits type (`feat:`, `fix:`,
+  `chore:`, `docs:`, `refactor:`, `test:`, `ci:`, etc.) — this repo's
+  release notes are auto-generated from commit/PR history, and direct
+  commits (not through a PR) show up there by subject line alone.

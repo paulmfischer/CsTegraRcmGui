@@ -34,3 +34,12 @@ for the rule itself:
 
 That's it — plug the device in (or replug it if it was already connected
 before installing the rule) and the app should be able to open it.
+
+## Troubleshooting
+
+The app depends on `libusb-1.0` being present on the system (it's not
+bundled, unlike on Windows). Most desktop distros already have it installed
+transitively via other packages, so this usually isn't something you need to
+install yourself — but if the app fails to detect the device even after the
+udev rule is in place, check that it's there (e.g. `libusb-1.0-0` on
+Debian/Ubuntu, `libusbx` on Fedora) and install it if not.
