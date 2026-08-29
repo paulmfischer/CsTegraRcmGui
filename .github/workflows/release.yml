@@ -45,6 +45,9 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained true \
             -p:Version=$VERSION \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=none \
             -o publish/${{ matrix.rid }}
 
       - name: Add prereq README and licensing docs
