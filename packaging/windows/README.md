@@ -27,3 +27,9 @@ supports.
 
 This only needs to be redone if the driver binding is later changed (e.g.
 back to WinUSB, or removed) — it isn't tied to the app installation itself.
+
+## Running the app
+
+Run it as Administrator (right-click the exe → **Run as administrator**).
+Without elevation, opening the device fails with access denied even with the
+libusbK driver bound correctly.
