@@ -45,7 +45,14 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained true \
             -p:Version=$VERSION \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=none \
             -o publish/${{ matrix.rid }}
+
+      - name: Remove native debug symbols
+        shell: bash
+        run: find publish/${{ matrix.rid }} -name "*.pdb" -delete
 
       - name: Add prereq README and licensing docs
         shell: bash
