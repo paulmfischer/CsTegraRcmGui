@@ -20,9 +20,8 @@
             <TabItem Header="Payload">
                 <views:PayloadView DataContext="{Binding Payload}" />
             </TabItem>
-            <TabItem Header="Tools">
-                <views:ToolsView DataContext="{Binding Tools}" />
-            </TabItem>
+            <!-- Tools tab is hidden for the time being; ToolsViewModel/ToolsView are untouched
+                 so re-enabling is just uncommenting this. -->
             <TabItem Header="Options">
                 <views:OptionsView DataContext="{Binding Options}" />
             </TabItem>
