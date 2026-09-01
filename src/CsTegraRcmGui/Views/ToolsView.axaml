@@ -12,7 +12,5 @@
 
         <Button Content="Mount SD card as USB storage" Command="{Binding MountSdCommand}" HorizontalAlignment="Stretch" />
         <Button Content="Mount eMMC as USB storage" Command="{Binding MountEmmcCommand}" HorizontalAlignment="Stretch" />
-        <Button Content="Run Linux (ShofEL2)" Command="{Binding RunShofel2Command}" HorizontalAlignment="Stretch" />
-        <Button Content="Dump BIS keys" Command="{Binding DumpBisKeyCommand}" HorizontalAlignment="Stretch" />
     </StackPanel>
 </UserControl>

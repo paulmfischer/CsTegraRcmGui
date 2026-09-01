@@ -7,10 +7,9 @@ using CommunityToolkit.Mvvm.Input;
 namespace CsTegraRcmGui.ViewModels;
 
 /// <summary>
-/// Mirrors the original "Tools" tab: mount SD/eMMC as USB mass storage,
-/// boot Linux via ShofEL2, dump BIS keys. All three work by sending a
-/// bundled payload/coreboot image to the device, so they share the same
-/// device service the Payload tab uses.
+/// Mirrors part of the original "Tools" tab: mount SD/eMMC as USB mass
+/// storage. Both work by sending a bundled memloader payload to the device,
+/// so they share the same device service the Payload tab uses.
 /// </summary>
 public partial class ToolsViewModel : ViewModelBase
 {
@@ -28,12 +27,6 @@ public partial class ToolsViewModel : ViewModelBase
 
     [RelayCommand]
     private async Task MountEmmcAsync() => await RunToolAsync("tools/memloader/ums_emmc.scr.img", "Mounting eMMC...");
-
-    [RelayCommand]
-    private async Task RunShofel2Async() => await RunToolAsync("shofel2/coreboot.bin", "Loading coreboot. Please wait.");
-
-    [RelayCommand]
-    private async Task DumpBisKeyAsync() => await RunToolAsync("tools/biskeydump_usb.bin", "Dumping BIS keys...");
 
     private async Task RunToolAsync(string toolPayloadPath, string startMessage)
     {
