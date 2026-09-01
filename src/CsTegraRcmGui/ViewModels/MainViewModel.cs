@@ -31,7 +31,7 @@ public partial class MainViewModel : ViewModelBase
         private static readonly IRcmDeviceService DeviceService = new StubRcmDeviceService();
 
         public static readonly LogViewModel Log = new();
-        private static readonly ILogger Logger = new CompositeLogger(new FileLogger(Settings), Log);
+        private static readonly ILogger Logger = new CompositeLogger(new FileLogger(), Log);
         public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Logger);
         public static ToolsViewModel Tools => new(DeviceService, Logger);
         public static OptionsViewModel Options => new(Settings);

@@ -12,6 +12,5 @@
 
         <!-- Auto-inject is hidden for the time being; OptionsViewModel.AutoInject and
              AppSettings.AutoInject are left in place so re-enabling is just uncommenting this. -->
-        <CheckBox Content="Enable logging" IsChecked="{Binding LoggingEnabled}" />
     </StackPanel>
 </UserControl>

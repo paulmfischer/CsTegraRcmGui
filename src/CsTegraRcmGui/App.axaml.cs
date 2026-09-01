@@ -22,7 +22,7 @@ public partial class App : Application
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
             var log = new LogViewModel();
-            ILogger logger = new CompositeLogger(new FileLogger(settings), log);
+            ILogger logger = new CompositeLogger(new FileLogger(), log);
             var deviceService = new LibUsbRcmDeviceService(logger);
 
             var mainViewModel = new MainViewModel(
