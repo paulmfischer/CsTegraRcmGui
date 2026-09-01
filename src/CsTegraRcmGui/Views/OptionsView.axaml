@@ -8,9 +8,10 @@
              x:DataType="vm:OptionsViewModel">
 
     <StackPanel Margin="16" Spacing="12">
-        <TextBlock Text="Options" FontWeight="Bold" FontSize="16" Margin="0,0,0,8" />
-
-        <!-- Auto-inject is hidden for the time being; OptionsViewModel.AutoInject and
-             AppSettings.AutoInject are left in place so re-enabling is just uncommenting this. -->
+        <StackPanel Spacing="4">
+            <TextBlock Text="Log file" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding LogFilePath}" TextWrapping="Wrap" />
+            <Button Content="Open log folder" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

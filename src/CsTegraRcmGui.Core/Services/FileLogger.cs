@@ -8,6 +8,8 @@ public sealed class FileLogger : ILogger
     private readonly string _filePath;
     private readonly object _lock = new();
 
+    public string FilePath => _filePath;
+
     public FileLogger(string? filePath = null)
     {
         _filePath = filePath ?? Path.Combine(AppContext.BaseDirectory, "cstegrarcmgui.log");

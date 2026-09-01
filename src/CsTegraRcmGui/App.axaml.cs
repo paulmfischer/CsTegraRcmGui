@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -22,13 +23,15 @@ public partial class App : Application
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
             var log = new LogViewModel();
-            ILogger logger = new CompositeLogger(new FileLogger(), log);
+            var fileLogger = new FileLogger();
+            ILogger logger = new CompositeLogger(fileLogger, log);
+            IFolderOpener folderOpener = OperatingSystem.IsWindows() ? new WindowsFolderOpener() : new LinuxFolderOpener();
             var deviceService = new LibUsbRcmDeviceService(logger);
 
             var mainViewModel = new MainViewModel(
                 new PayloadViewModel(deviceService, favorites, logger),
                 new ToolsViewModel(deviceService, logger),
-                new OptionsViewModel(settings),
+                new OptionsViewModel(fileLogger.FilePath, folderOpener, logger),
                 log);
 
             desktop.MainWindow = new MainWindow

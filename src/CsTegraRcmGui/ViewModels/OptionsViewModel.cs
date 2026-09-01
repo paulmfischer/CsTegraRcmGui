@@ -1,29 +1,33 @@
 using System;
 using CsTegraRcmGui.Core.Services;
-using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace CsTegraRcmGui.ViewModels;
 
 public partial class OptionsViewModel : ViewModelBase
 {
-    private readonly ISettingsService _settingsService;
+    private readonly IFolderOpener _folderOpener;
+    private readonly ILogger _log;
 
-    [ObservableProperty]
-    public partial bool AutoInject { get; set; }
+    public string LogFilePath { get; }
 
-    public OptionsViewModel(ISettingsService settingsService)
+    public OptionsViewModel(string logFilePath, IFolderOpener folderOpener, ILogger log)
     {
-        _settingsService = settingsService;
-
-        var settings = _settingsService.Current;
-        AutoInject = settings.AutoInject;
+        LogFilePath = logFilePath;
+        _folderOpener = folderOpener;
+        _log = log;
     }
 
-    partial void OnAutoInjectChanged(bool value) => Persist(s => s.AutoInject = value);
-
-    private void Persist(Action<Core.Models.AppSettings> apply)
+    [RelayCommand]
+    private void OpenLogFolder()
     {
-        apply(_settingsService.Current);
-        _settingsService.Save();
+        try
+        {
+            _folderOpener.OpenContainingFolder(LogFilePath);
+        }
+        catch (Exception ex)
+        {
+            _log.Error("Failed to open log folder", ex);
+        }
     }
 }

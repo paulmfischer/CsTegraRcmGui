@@ -1,3 +1,4 @@
+using System;
 using CsTegraRcmGui.Core.Services;
 using CsTegraRcmGui.Services;
 
@@ -31,9 +32,12 @@ public partial class MainViewModel : ViewModelBase
         private static readonly IRcmDeviceService DeviceService = new StubRcmDeviceService();
 
         public static readonly LogViewModel Log = new();
-        private static readonly ILogger Logger = new CompositeLogger(new FileLogger(), Log);
+        private static readonly FileLogger FileLog = new();
+        private static readonly ILogger Logger = new CompositeLogger(FileLog, Log);
+        private static readonly IFolderOpener FolderOpener =
+            OperatingSystem.IsWindows() ? new WindowsFolderOpener() : new LinuxFolderOpener();
         public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Logger);
         public static ToolsViewModel Tools => new(DeviceService, Logger);
-        public static OptionsViewModel Options => new(Settings);
+        public static OptionsViewModel Options => new(FileLog.FilePath, FolderOpener, Logger);
     }
 }
