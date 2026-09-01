@@ -1,7 +1,9 @@
 namespace CsTegraRcmGui.Core.Services;
 
 /// <summary>
-/// Writes every log level to a file next to the app.
+/// Writes every log level to a file next to the app. On construction, rotates
+/// the existing file (to <c>.1</c>, <c>.2</c>, ... up to <paramref name="retainedFileCount"/>)
+/// if it has grown past <paramref name="maxSizeBytes"/>.
 /// </summary>
 public sealed class FileLogger : ILogger
 {
@@ -10,9 +12,36 @@ public sealed class FileLogger : ILogger
 
     public string FilePath => _filePath;
 
-    public FileLogger(string? filePath = null)
+    public FileLogger(string? filePath = null, long maxSizeBytes = 5 * 1024 * 1024, int retainedFileCount = 2)
     {
         _filePath = filePath ?? Path.Combine(AppContext.BaseDirectory, "cstegrarcmgui.log");
+        RotateIfNeeded(maxSizeBytes, retainedFileCount);
+    }
+
+    private void RotateIfNeeded(long maxSizeBytes, int retainedFileCount)
+    {
+        var info = new FileInfo(_filePath);
+        if (!info.Exists || info.Length < maxSizeBytes)
+            return;
+
+        if (retainedFileCount <= 0)
+        {
+            File.Delete(_filePath);
+            return;
+        }
+
+        var oldest = $"{_filePath}.{retainedFileCount}";
+        if (File.Exists(oldest))
+            File.Delete(oldest);
+
+        for (var i = retainedFileCount - 1; i >= 1; i--)
+        {
+            var src = $"{_filePath}.{i}";
+            if (File.Exists(src))
+                File.Move(src, $"{_filePath}.{i + 1}");
+        }
+
+        File.Move(_filePath, $"{_filePath}.1");
     }
 
     public void Debug(string message) => Write($"DEBUG: {message}");

@@ -23,7 +23,9 @@ public partial class App : Application
             ISettingsService settings = new JsonSettingsService();
             IFavoritesService favorites = new FavoritesService(settings);
             var log = new LogViewModel();
-            var fileLogger = new FileLogger();
+            var fileLogger = new FileLogger(
+                maxSizeBytes: settings.Current.LogMaxSizeBytes,
+                retainedFileCount: settings.Current.LogRetainedFileCount);
             ILogger logger = new CompositeLogger(fileLogger, log);
             IFolderOpener folderOpener = OperatingSystem.IsWindows() ? new WindowsFolderOpener() : new LinuxFolderOpener();
             var deviceService = new LibUsbRcmDeviceService(logger);
