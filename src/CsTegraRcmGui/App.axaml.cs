@@ -1,4 +1,3 @@
-using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -27,8 +26,8 @@ public partial class App : Application
                 maxSizeBytes: settings.Current.LogMaxSizeBytes,
                 retainedFileCount: settings.Current.LogRetainedFileCount);
             ILogger logger = new CompositeLogger(fileLogger, log);
-            IFolderOpener folderOpener = OperatingSystem.IsWindows() ? new WindowsFolderOpener() : new LinuxFolderOpener();
-            var deviceService = new LibUsbRcmDeviceService(logger);
+            IFolderOpener folderOpener = PlatformServices.CreateFolderOpener();
+            var deviceService = new LibUsbRcmDeviceService(logger, PlatformServices.CreateRcmTrigger());
 
             var mainViewModel = new MainViewModel(
                 new PayloadViewModel(deviceService, favorites, logger),

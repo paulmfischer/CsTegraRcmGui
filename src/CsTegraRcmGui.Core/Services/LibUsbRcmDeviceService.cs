@@ -66,13 +66,15 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
     private readonly UsbContext _context = new();
     private readonly CancellationTokenSource _monitorCts = new();
     private readonly ILogger _log;
+    private readonly IRcmTrigger _trigger;
     private RcmDeviceState _lastState = RcmDeviceState.NotConnected;
 
     public event EventHandler<RcmDeviceState>? StateChanged;
 
-    public LibUsbRcmDeviceService(ILogger log)
+    public LibUsbRcmDeviceService(ILogger log, IRcmTrigger trigger)
     {
         _log = log;
+        _trigger = trigger;
         _ = MonitorAsync(_monitorCts.Token);
     }
 
@@ -150,32 +152,8 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
 
             progress?.Report("Triggering payload execution...");
             var triggerLength = (int)(StackEndAddress - HighBufferAddress);
-            if (OperatingSystem.IsLinux() && device is UsbDevice concreteDevice)
-            {
-                // Standard libusb control transfers of this size are
-                // rejected locally (Error.InvalidParam) on Linux without
-                // ever reaching the device — a single 0x7000-byte usbfs URB
-                // apparently isn't accepted through that path. Submit it as
-                // a raw usbfs URB instead, the same workaround JTegraNX's
-                // own Linux-specific native helper uses.
-                if (!LinuxRcmTrigger.Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, _log))
-                    throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
-            }
-            else if (OperatingSystem.IsWindows())
-            {
-                // libusb's Windows backend hard-caps every control transfer
-                // at 4096 bytes (MAX_CTRL_BUFFER_LENGTH), for WinUSB,
-                // libusbK and libusb0 alike — the same "Invalid parameter"
-                // rejected-locally failure as the standard path below, just
-                // never surfaced there. Submit it as a raw libusbK IOCTL
-                // instead, bypassing libusb entirely for this transfer.
-                if (!WindowsRcmTrigger.Trigger(VendorId, ProductId, triggerLength, _log))
-                    throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
-            }
-            else if (!TriggerExecution(device, triggerLength, _log))
-            {
+            if (!_trigger.Trigger(device, VendorId, ProductId, triggerLength, _log))
                 throw new InvalidOperationException("Trigger transfer did not land — the device is still alive and did not jump to the payload.");
-            }
             progress?.Report("Payload injected!");
         }
         catch (Exception ex)
@@ -255,47 +233,6 @@ public sealed class LibUsbRcmDeviceService : IRcmDeviceService, IDisposable
                 () => writer.WriteAsync(payload.AsMemory(offset, PacketSize), TransferTimeoutMs),
                 cancellationToken);
             error.ThrowOnError();
-        }
-    }
-
-    /// <summary>
-    /// Returns true only when the transfer failed in a way consistent with
-    /// the device having jumped away mid-transfer. A completed transfer, or
-    /// one rejected with <see cref="Error.InvalidParam"/> — which on
-    /// Windows means WinUSB's 4KB control-transfer ceiling rejected this
-    /// call locally, before it ever reached the device — both mean the
-    /// trigger did not land.
-    /// </summary>
-    private static bool TriggerExecution(IUsbDevice device, int triggerLength, ILogger log)
-    {
-        var setupPacket = new UsbSetupPacket(
-            bRequestType: 0x82, // Device-to-host | Standard | Recipient=Endpoint
-            bRequest: 0x00,     // GET_STATUS
-            wValue: 0,
-            wIndex: 0,
-            wlength: triggerLength);
-
-        log.Debug($"Sending trigger control transfer: length={triggerLength}");
-        try
-        {
-            var transferred = device.ControlTransfer(setupPacket, new byte[triggerLength], 0, triggerLength);
-            log.Debug($"Trigger control transfer completed without error: {transferred} bytes transferred (unexpected — normally the device jumps away before responding)");
-            return false;
-        }
-        catch (UsbException ex) when (ex.ErrorCode == Error.InvalidParam)
-        {
-            // Rejected locally by the USB stack (e.g. WinUSB's hard 4KB
-            // control-transfer limit on Windows) — never reached the
-            // device, so the trigger did not land.
-            log.Debug($"Trigger control transfer rejected locally, never reached the device: {ex.Message}");
-            return false;
-        }
-        catch (UsbException ex)
-        {
-            // Expected: once the trigger lands, the device jumps into the
-            // payload and stops responding on this pipe.
-            log.Debug($"Trigger control transfer threw (expected once the trigger lands): {ex.Message}");
-            return true;
         }
     }
 

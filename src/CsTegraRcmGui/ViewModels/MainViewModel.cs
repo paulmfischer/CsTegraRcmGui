@@ -1,4 +1,3 @@
-using System;
 using CsTegraRcmGui.Core.Services;
 using CsTegraRcmGui.Services;
 
@@ -34,8 +33,7 @@ public partial class MainViewModel : ViewModelBase
         public static readonly LogViewModel Log = new();
         private static readonly FileLogger FileLog = new();
         private static readonly ILogger Logger = new CompositeLogger(FileLog, Log);
-        private static readonly IFolderOpener FolderOpener =
-            OperatingSystem.IsWindows() ? new WindowsFolderOpener() : new LinuxFolderOpener();
+        private static readonly IFolderOpener FolderOpener = PlatformServices.CreateFolderOpener();
         public static PayloadViewModel Payload => new(DeviceService, FavoritesService, Logger);
         public static ToolsViewModel Tools => new(DeviceService, Logger);
         public static OptionsViewModel Options => new(FileLog.FilePath, FolderOpener, Logger);

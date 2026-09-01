@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using LibUsbDotNet.LibUsb;
 
 namespace CsTegraRcmGui.Core.Services;
 
@@ -9,8 +10,19 @@ namespace CsTegraRcmGui.Core.Services;
 /// locally on Linux, before it ever reaches the device). Mirrors
 /// JTegraNX's Linux native helper (Native/Linux/native.cpp).
 /// </summary>
-internal static class LinuxRcmTrigger
+internal sealed class LinuxRcmTrigger : IRcmTrigger
 {
+    public bool Trigger(IUsbDevice device, int vendorId, int productId, int triggerLength, ILogger log)
+    {
+        if (device is not UsbDevice concreteDevice)
+        {
+            log.Debug("Trigger (Linux raw URB): device is not a concrete UsbDevice, cannot read its bus/address");
+            return false;
+        }
+
+        return Trigger(concreteDevice.BusNumber, concreteDevice.Address, triggerLength, log);
+    }
+
     private const int ORdWr = 2;
     private const long IoctlSubmitUrb = 0x8038550a;
     private const long IoctlDiscardUrb = 0x550b;
@@ -29,7 +41,7 @@ internal static class LinuxRcmTrigger
     /// payload but no working trigger, and will silently time out and
     /// disconnect on its own if the caller reports this as success.
     /// </summary>
-    public static bool Trigger(byte busNumber, byte deviceAddress, int triggerLength, ILogger log)
+    private static bool Trigger(byte busNumber, byte deviceAddress, int triggerLength, ILogger log)
     {
         var devicePath = $"/dev/bus/usb/{busNumber:D3}/{deviceAddress:D3}";
 

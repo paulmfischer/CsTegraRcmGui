@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using LibUsbDotNet.LibUsb;
 
 namespace CsTegraRcmGui.Core.Services;
 
@@ -20,8 +21,11 @@ namespace CsTegraRcmGui.Core.Services;
 /// system-wide alongside the driver itself — is the one thing that already
 /// knows how to resolve it correctly.
 /// </summary>
-internal static class WindowsRcmTrigger
+internal sealed class WindowsRcmTrigger : IRcmTrigger
 {
+    public bool Trigger(IUsbDevice device, int vendorId, int productId, int triggerLength, ILogger log) =>
+        Trigger(vendorId, productId, triggerLength, log);
+
     private const uint IoctlGetStatus = 0x22201C; // CTL_CODE(FILE_DEVICE_UNKNOWN, 0x807, METHOD_BUFFERED, FILE_ANY_ACCESS)
     private const uint RecipientEndpoint = 0x02;
     private const uint RequestTimeoutMs = 3000;
@@ -47,7 +51,7 @@ internal static class WindowsRcmTrigger
     /// device node, the ioctl failed some other way, or the device
     /// responded normally) means the trigger did not land.
     /// </summary>
-    public static bool Trigger(int vendorId, int productId, int triggerLength, ILogger log)
+    private static bool Trigger(int vendorId, int productId, int triggerLength, ILogger log)
     {
         var devicePath = FindDevicePath(vendorId, productId, log);
         if (devicePath is null)

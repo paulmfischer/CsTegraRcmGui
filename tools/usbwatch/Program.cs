@@ -4,7 +4,7 @@ using CsTegraRcmGui.Core.Services;
 Console.WriteLine("Watching for a device at 0955:7321 (Ctrl+C to quit)...");
 
 ILogger fileLogger = new FileLogger();
-using var deviceService = new LibUsbRcmDeviceService(fileLogger);
+using var deviceService = new LibUsbRcmDeviceService(fileLogger, PlatformServices.CreateRcmTrigger());
 
 RcmDeviceState? lastState = null;
 while (true)
